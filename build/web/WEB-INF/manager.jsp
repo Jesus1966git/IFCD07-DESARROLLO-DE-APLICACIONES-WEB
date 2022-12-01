@@ -69,6 +69,9 @@
                     <li>
                         <a href="/WebMediaManager2/upload.html" class="btn-success">Upload</a>
                     </li>
+                     <li>
+                        <a href="/WebMediaManager2/MediaController?action=settings" class="btn-success">Settings</a>
+                    </li>
                 </div> 
             </nav>
         </div>

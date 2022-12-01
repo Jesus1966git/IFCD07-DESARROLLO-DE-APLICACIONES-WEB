@@ -7,12 +7,16 @@ package com.example.controller;
 import com.example.bean.FileMediaBean;
 import com.example.media.MediaGroup;
 import com.example.media.MediaItem;
+import com.example.media.MediaOrder;
+import com.example.media.MediaQualifier;
+import com.example.media.MediaType;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -36,8 +40,20 @@ public class MediaController extends HttpServlet {
 //        response.setContentType("text/html;charset=UTF-8");
         ServletContext context = getServletContext();
         String realPath = context.getRealPath("fxmedia");
-        System.out.println("realPath-------------" + realPath);
         FileMediaBean fmm = new FileMediaBean(realPath);
+        MediaQualifier mq;
+        HttpSession session = request.getSession();
+        if (session.isNew()) {
+            mq = fmm.getQualifier();
+            session.setAttribute("qualifierBean", mq);
+        }
+        mq = (MediaQualifier) session.getAttribute("qualifierBean");
+        if (mq == null) {
+            System.out.println("Got null");
+            mq = fmm.getQualifier();
+            session.setAttribute("qualifierBean", mq);
+        }
+
         String action = request.getParameter("action");
         if (action == null) {
             action = "manager";
@@ -55,6 +71,32 @@ public class MediaController extends HttpServlet {
                 request.setAttribute("itemBean", item);
                 address = "/WEB-INF/media.jsp";
                 break;
+            case "settings":
+                address = "/WEB-INF/settings.jsp";
+                break;
+            case "newSettings":
+                String type = request.getParameter("type");
+                String sortOrder = request.getParameter("sortOrder");
+                if (type != null) {
+                    switch (type) {
+                        case "images":
+                            mq.setTypes(MediaType.IMAGE);
+                            break;
+                        case "videos":
+                            mq.setTypes(MediaType.MP4_VIDEO, MediaType.OGV_VIDEO);
+                            break;
+                        default:
+                            mq.setTypes(new MediaType[]{MediaType.IMAGE, MediaType.MP4_VIDEO, MediaType.OGV_VIDEO});
+                            break;
+                    }
+                }
+                if(sortOrder!=null){
+                    mq.setSortOrder(MediaOrder.valueOf(sortOrder));                  
+                }
+                fmm.loadData(mq);
+                request.setAttribute("fileBean", fmm);                
+                address = "/WEB-INF/manager.jsp";
+                break;
             default:
                 request.setAttribute("error", "Unknown action!");
                 address = "/WEB-INF/error.jsp";
@@ -62,10 +104,7 @@ public class MediaController extends HttpServlet {
         }
         RequestDispatcher dispatcher = request.getRequestDispatcher(address);
         dispatcher.forward(request, response);
-//        TODO media.jsp 6 14 3
-        
-        
-        
+
 //        fmm.loadData();
 //        request.setAttribute("fileBean", fmm);
 //        RequestDispatcher dispatcher=request.getRequestDispatcher("/WEB-INF/manager.jsp");
