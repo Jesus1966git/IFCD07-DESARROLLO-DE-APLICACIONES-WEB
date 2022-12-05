@@ -9,14 +9,24 @@ import com.example.media.MediaGroup;
 import com.example.media.MediaItem;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.ServletContext;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.ResponseBuilder;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Path("media")
@@ -58,10 +68,48 @@ public class MediaResource {
     @Produces({MediaType.APPLICATION_JSON})
     public MediaItem getMediaitem(@PathParam("id") String id) {
         MediaItem item = null;
-//        try {
-//            //TODO 7 7 1.5
-//        } catch (FileNotFoundException e) {
-//        }
-        return null;
+        try {
+            item = fmm.getMediaManager().getMediaItem(id);
+            item.setUri("http://localhost:8086/WebMediaManager2/fxmedia/" + item.getId());
+        } catch (FileNotFoundException e) {
+            LOG.log(Level.SEVERE, "FileMediaManager did not find at MediaItem with Id: " + id, e);
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        return item;
     }
+
+    @DELETE
+    @Path("{id}")
+    @Produces({MediaType.APPLICATION_JSON})
+    public Response deleteMediaItem(@PathParam("id") String id) {
+        ResponseBuilder responseBuilder;
+        MediaItem item = null;
+        try {
+            fmm.getMediaManager().deleteMediaItem(id);
+            responseBuilder = Response.ok("Deleted: " + id);
+        } catch (FileNotFoundException e) {
+              LOG.log(Level.SEVERE, "FileMediaManager did not find at MediaItem with Id: " + id, e);
+              responseBuilder = Response.status(404, "NO HEMOS ENCONTRADO NADA CON ID: "+id);
+        }
+        return responseBuilder.build();
+    }
+    
+    @PUT
+    @Path("{fileName}")
+    @Produces({MediaType.APPLICATION_JSON})
+    public Response putMediaItem(@PathParam("fileName") String fileName, File file) {
+        ResponseBuilder responseBuilder;
+        int periodIndex = fileName.lastIndexOf(".");
+        String title = fileName.substring(0, periodIndex);
+        MediaItem item = new MediaItem(title, fileName, new Date());
+        try {
+            fmm.getMediaManager().createMediaItem(item, new FileInputStream(file));
+              responseBuilder = Response.ok("Loaded: " + fileName);
+        } catch (IOException ex) {
+            Logger.getLogger(MediaResource.class.getName()).log(Level.SEVERE, null, ex);
+            responseBuilder = Response.status(Response.Status.INTERNAL_SERVER_ERROR);
+        }
+        return responseBuilder.build();   
+    }
+
 }

@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
@@ -23,11 +24,13 @@ public class FileMediaManager implements MediaManager {
     }
 
     /**
-     * Creates a MediaManager which uses a directory as a source of MediaItem objects.
+     * Creates a MediaManager which uses a directory as a source of MediaItem
+     * objects.
+     *
      * @param dir The directory containing media pictures and videos.
-     * @param idFormat The IdFormat.FX value causes received and returned MediaItem 
-     * ids to be based on the File.getAbsolutePath() result while a IdFormat.WEB value 
-     * will use ContainingDir/file.jpg as the format.
+     * @param idFormat The IdFormat.FX value causes received and returned
+     * MediaItem ids to be based on the File.getAbsolutePath() result while a
+     * IdFormat.WEB value will use ContainingDir/file.jpg as the format.
      * @throws FileNotFoundException
      */
     public FileMediaManager(File dir, IdFormat idFormat) throws FileNotFoundException {
@@ -36,8 +39,9 @@ public class FileMediaManager implements MediaManager {
             throw new IllegalArgumentException("Argument must be a directory");
         }
         this.dir = dir;
-        if(idFormat == IdFormat.WEB) {
-            hiddenLocationPrefix = dir.getParent();
+        if (idFormat == IdFormat.WEB) {
+//            hiddenLocationPrefix = dir.getParent();
+            hiddenLocationPrefix = dir.toString();
         }
         logger.log(Level.INFO, "FileMediaManager created with a directory of {0}", dir);
         logger.log(Level.INFO, "FileMediaManager created with a IdFormat of {0}", idFormat);
@@ -48,12 +52,13 @@ public class FileMediaManager implements MediaManager {
         File f = new File(dir, item.getId());
         String realId = generateMediaId(f);
         item.setId(realId);
-        Files.copy(content, f.toPath());
+        Files.copy(content, f.toPath(), StandardCopyOption.REPLACE_EXISTING);
         //TODO Use MetaDataManager to save title, tags, and date
     }
 
     @Override
     public MediaItem getMediaItem(String id) throws FileNotFoundException {
+//        System.out.println("HIDDEN-------------------->" + hiddenLocationPrefix);
         File f = new File(hiddenLocationPrefix, id);
         if (f == null || !f.isFile()) {
             throw new FileNotFoundException(id);
@@ -78,10 +83,12 @@ public class FileMediaManager implements MediaManager {
     }
 
     @Override
-    public void deleteMediaItem(String id) {
+    public void deleteMediaItem(String id) throws FileNotFoundException {
         File f = new File(hiddenLocationPrefix, id);
         if (f != null && f.isFile()) {
             f.delete();
+        }else{
+            throw new FileNotFoundException(id);
         }
         //TODO Delete title, tags, and date info using MetaDataManager
     }

@@ -15,7 +15,7 @@ public interface MediaManager extends Serializable {
     
     public void updateMediaItem(MediaItem item) throws FileNotFoundException;
     
-    public void deleteMediaItem(String id);
+    public void deleteMediaItem(String id)throws FileNotFoundException;
     
     public List<MediaGroup> listMediaItems(MediaQualifier filter) throws FileNotFoundException;
 }
